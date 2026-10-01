@@ -52,14 +52,14 @@ K_fit-colab/
 | C2 | Stage 3 summary | done |
 | C3 | Selection methods, copies, pairs CSV, pair check | done |
 | C4 | Fitting, results table, download | done |
-| C5 | End-to-end run in Colab; **Open in Colab** badge in the README | open: needs the GitHub URLs |
+| C5 | End-to-end run in Colab; **Open in Colab** badge in the README | done (upload tested in Colab by the owner) |
 
-13 tests pass locally (including the GFP 1EMA / 6L26 test by PDB ID) with ipywidgets 7.7.1 and 8.1.9.
+16 tests pass locally (including the CLAUDE.md test case by PDB ID) with ipywidgets 7.7.1 and 8.1.9.
 
 ## Open items
 
 - The install cell assumes `https://github.com/bigbigdumdum/K_fit.git` and
   `https://github.com/bigbigdumdum/K_fit-colab.git`. Change `K_FIT_REPO` and
   `K_FIT_COLAB_REPO` if they differ.
-- `ipywidgets.FileUpload` has not been tested in a live Colab runtime yet. The
-  text field also accepts a file path, as a fallback.
+- `ipywidgets.FileUpload` works in Colab (tested). The text field also
+  accepts a file path.

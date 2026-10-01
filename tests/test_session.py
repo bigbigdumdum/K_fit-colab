@@ -150,7 +150,7 @@ def test_colouring(session):
     assert colors.RESIDUE_COLORS["MET"] in selector.residue_style.value
     assert colors.WATER_COLOR in selector.residue_style.value
     assert colors.ELEMENT_COLORS["N"] in selector.atom_style.value
-    assert colors.residue_style("CRO") == colors.NONSTANDARD_STYLE
+    assert colors.residue_style("HEM") == colors.NONSTANDARD_STYLE
     assert colors.residue_style("ALA") != colors.NONSTANDARD_STYLE
     selector.add_atom_button.click()
     assert colors.RESIDUE_COLORS["MET"] in selector.table.value
@@ -211,3 +211,39 @@ def test_add_backbone_altlocs_and_missing(session):
     selector.residue_list.value = water
     selector.add_backbone_button.click()
     assert selector.selected_ids() == [] and "has no N, CA, C" in selector.message.value
+
+
+def test_bad_pairs_csv_changes_nothing(session):
+    session.load_inputs([upload("1UBQ.pdb")])
+    ids = ca_ids(session.reference)[:5]
+    session.set_selection("1UBQ.pdb", ids)
+    bad = "1UBQ.pdb,1UBQ_1.pdb\n" + "".join(f"{i},\n" for i in ids)   # empty cells
+    with pytest.raises(Exception, match="non-empty"):
+        session.apply_pairs_csv(bad)
+    assert session.names() == ["1UBQ.pdb"] and session.selections == {"1UBQ.pdb": ids}
+
+
+def test_outputs_cleared_on_load_and_run(session):
+    session.load_inputs([upload("1L2Y_3models.pdb")])
+    session.set_selection(session.reference.name, ca_ids(session.reference))
+    session.fit_all_models = True
+    session.so_cutoff = session.rmsd_cutoff = 5.0
+    session.run()
+    stale = os.path.join(session.output_dir, "old_fit.pdb")
+    open(stale, "w").close()
+    session.run()                                  # a new run starts from an empty folder
+    assert not os.path.exists(stale)
+    session.load_inputs([upload("1UBQ.pdb")])      # the input stage empties it too
+    assert not os.path.exists(session.output_dir)
+
+
+def test_engine_errors_print_without_traceback(session, capsys):
+    widgets = pytest.importorskip("k_fit_colab.widgets")
+    import ipywidgets
+    from K_fit.parser import StructureError
+
+    def fail():
+        raise StructureError("x.pdb: no atoms found")
+    widgets.run_safely(ipywidgets.Output(), fail)
+    out = capsys.readouterr().out
+    assert "ERROR: x.pdb: no atoms found" in out and "Traceback" not in out

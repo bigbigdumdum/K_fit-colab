@@ -25,6 +25,7 @@ import ipywidgets as w
 from IPython.display import display
 
 from K_fit.checker import parse_matomid_list
+from K_fit.errors import KFitError
 
 from . import colors
 from .session import InputSpec, NotebookSession, SessionError
@@ -55,7 +56,7 @@ def run_safely(output: w.Output, action) -> None:
         output.clear_output()
         try:
             action()
-        except (SessionError, ValueError, KeyError, OSError) as err:
+        except (SessionError, KFitError, ValueError, KeyError, OSError) as err:
             print(f"ERROR: {err}")
         except Exception:                                         # noqa: BLE001
             traceback.print_exc()

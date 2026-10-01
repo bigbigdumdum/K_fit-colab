@@ -56,10 +56,13 @@ ref.pdb,model_a.pdb,1ABC.cif
 
 | File | Content |
 |---|---|
-| `<name>_fit.pdb` / `.cif` | Fitted structure, same format as the input (not written if no fit passed) |
+| `<name>_fit.pdb` / `.cif` | Fitted structure, same format as the input, coordinates only (header records removed). Not written if no fit passed |
 | `report.txt` | Inputs with SHA-256 checksums, cutoffs, and for each fit the atom count, RMSD, structure overlap, FIT / NO FIT and the transformation |
 | `<name>__pairs.csv` | The exact atom pairs used |
 | `transforms.csv` | Rotation R and translation t for each fit (x' = R·x + t) |
+
+The output folder is emptied each time structures are loaded (Stage 2) and
+before each run (Stage 5), so it only holds the latest results.
 
 ## Running locally
 

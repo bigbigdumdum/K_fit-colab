@@ -13,6 +13,7 @@ import csv
 import io
 import os
 import re
+import shutil
 from dataclasses import dataclass
 
 from K_fit.checker import check_atom_pairs, read_pairs_csv
@@ -95,14 +96,16 @@ class NotebookSession:
     def load_inputs(self, specs: list) -> list:
         """Load every non-empty input row; return one message per structure.
 
-        Replaces any previously loaded structures. Duplicate file names are
-        renamed ``<stem>_<n><ext>``. Uploaded files are saved to
-        ``input_dir/<row number>/<file name>`` so that the original file name is kept.
+        Replaces any previously loaded structures and empties ``output_dir``.
+        Duplicate file names are renamed ``<stem>_<n><ext>``. Uploaded files are
+        saved to ``input_dir/<row number>/<file name>`` so that the original file
+        name is kept.
         """
         specs = [spec for spec in specs if not spec.is_empty()]
         if not specs:
             raise SessionError("provide at least one structure (upload or PDB ID)")
         self.structures, self.selections, self.result = [], {}, None
+        self.clear_outputs()
         messages = []
         for row, spec in enumerate(specs, start=1):
             path, source = self._resolve_input(row, spec)
@@ -113,6 +116,15 @@ class NotebookSession:
             renamed = f" (renamed from {structure.file_name})" if name != structure.file_name else ""
             messages.append(f"{role}: {name}{renamed}")
         return messages
+
+    def clear_outputs(self) -> None:
+        """Delete ``output_dir`` and everything in it, so no file of an earlier run remains.
+
+        Called by ``load_inputs`` (the input stage) and before each ``run``.
+        Only ``output_dir`` is removed; inputs are kept.
+        """
+        if os.path.isdir(self.output_dir):
+            shutil.rmtree(self.output_dir)
 
     def _resolve_input(self, row: int, spec: InputSpec) -> tuple:
         """Return (path, source) for one input row, saving or downloading as needed."""
@@ -153,25 +165,32 @@ class NotebookSession:
 
         The first column must be the reference. A header like ``<stem>_<n><ext>``
         that is not loaded but whose base file is loaded creates a copy, just
-        like a duplicate input.
+        like a duplicate input. The whole file is checked first: if it has an
+        error, nothing (structures or selections) is changed.
         """
         rows = [row for row in csv.reader(io.StringIO(text)) if any(c.strip() for c in row)]
         header = [cell.strip() for cell in rows[0]] if rows else []
-        messages = []
+        names = self.names()
+        planned = []                    # (base name, copy name) to create once valid
         for name in header[1:]:
-            if name in self.names():
+            if name in names:
                 continue
             base = _base_name(name)
-            if base in self.names():
-                copy = self.add_copy(base)
-                if copy.name != name:
+            if base in names:
+                expected = make_unique_name(base, names)
+                if expected != name:
                     raise SessionError(f"pairs CSV column {name}: expected the next copy to be "
-                                       f"named {copy.name}; number copies consecutively")
-                messages.append(f"created copy {name} of {base}")
-        reference_name, selections = read_pairs_csv(text, self.names())
+                                       f"named {expected}; number copies consecutively")
+                planned.append((base, name))
+                names = names + [name]
+        reference_name, selections = read_pairs_csv(text, names)
         if reference_name != self.reference.name:
             raise SessionError(f"pairs CSV first column is {reference_name}, but the reference "
                                f"(first input) is {self.reference.name}")
+        messages = []
+        for base, name in planned:
+            self.add_copy(base)
+            messages.append(f"created copy {name} of {base}")
         self.selections = {}
         for target_name, (ref_ids, tgt_ids) in selections.items():
             self.selections[reference_name] = ref_ids
@@ -217,7 +236,9 @@ class NotebookSession:
                 for job in self.build_jobs()]
 
     def run(self):
-        """Run the fitting and writing; store and return the RunResult."""
+        """Empty ``output_dir``, run the fitting and writing; store and return the RunResult."""
+        self.result = None
+        self.clear_outputs()
         self.result = run_superposition(
             self.reference, self.build_jobs(), self.output_dir,
             so_cutoff=self.so_cutoff, rmsd_cutoff=self.rmsd_cutoff,
