@@ -58,8 +58,8 @@ pip install -e K_fit -e K_fit-colab
 - **Stage 1** clones or pulls both repositories and pip-installs them only
   inside Colab (detected by importing `google.colab`); locally it does nothing.
   The repository URLs are `K_FIT_REPO` / `K_FIT_COLAB_REPO` in that cell, and
-  `BRANCH` picks the branch of both (`test` on the test branch; set it to
-  `main` when merging). An existing clone is fetched and switched to `BRANCH`.
+  `BRANCH` picks the branch of both: `main` on main. On a test branch set it
+  to that branch, and back to `main` before merging. An existing clone is fetched and switched to `BRANCH`.
 - **Working folder** (`session.default_work_dir`): `/content/k_fit` in Colab,
   `./k_fit_work` elsewhere.
 - **Stage 6** downloads with `google.colab.files` in Colab, and prints the zip
