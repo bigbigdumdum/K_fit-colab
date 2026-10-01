@@ -1,0 +1,25 @@
+# Copyright (C) 2026 Mukundan S
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k_fit_colab"
+version = "0.1.0"
+description = "Google Colab user interface for the K_fit structure superposition engine"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Mukundan S" }]
+requires-python = ">=3.10"
+# K_fit itself is installed from its git repository by the notebook's first cell.
+dependencies = ["ipywidgets>=7.6"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["k_fit_colab*"]
